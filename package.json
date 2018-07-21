@@ -1,0 +1,30 @@
+{
+  "name": "kms-s3-encryption-sample",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chosenbreed37/kms-s3-encryption-sample.git"
+  },
+  "keywords": [
+    "crypto",
+    "AWS",
+    "S3",
+    "KMS"
+  ],
+  "author": "chosenbreed",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chosenbreed37/kms-s3-encryption-sample/issues"
+  },
+  "homepage": "https://github.com/chosenbreed37/kms-s3-encryption-sample#readme",
+  "dependencies": {
+    "aws-sdk": "^2.278.1",
+    "dotenv": "^6.0.0",
+    "node-s3-encryption-client": "^0.1.1"
+  }
+}
