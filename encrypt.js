@@ -1,24 +1,20 @@
+require('dotenv').config();
+
 const AWS = require('aws-sdk');
 AWS.config.update({region: 'eu-west-1'});
-const s3encrypt = require('node-s3-encryption-client');
+const kms = new AWS.KMS();
+const s3 = new AWS.S3();
 const crypto = require('crypto');
 const fs = require('fs');
 
-const decryptedFile = 'google-decrypted.png';
-
-const algorithm = 'aes-128-ecb';
-const algorithm2 = 'AES_256';
+const algorithm = 'aes-128-cbc';
 const bucketname = 'docs-365';
 const kms_key_id = process.env.AWS_KMS_CMK;
+const metadataKmsKeyName = 'x-amz-key';
 
-module.exports.decrypt = function () {
-    
-};
-
-module.exports.encrypt = function(file) {
-    const item_key = bucketname.concat('/', file);
+function encrypt(file) {
+    const item_key = file;
     fs.readFile(file, (err, buffer) => {
-
         const params = {
             Body: buffer,
             Bucket: bucketname,
@@ -29,23 +25,37 @@ module.exports.encrypt = function(file) {
             }
         };
 
-        // Use provided putObject function
-        s3encrypt.putObject(params, (err, success) => {
+        putObject(params, (err, success) => {
             if (err) throw err;
             console.log('Successfully encrypted and uploaded: %s', file);
         })
-        //    if (err) throw err;
-
-        // const cipher = crypto.createCipher(algorithm, key);
-
-        // const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
-
-        // const decipher = crypto.createDecipher(algorithm, key);
-        // const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-
-        // fs.writeFile(decryptedFile, decrypted, (err) => {
-        //     if (err) throw err;
-        //     console.log('>>> Successfully save file');
-        // })
     });
 };
+
+function putObject(params, callback) {
+    const kmsParams = params.KmsParams
+    if (kmsParams && kmsParams.KeyId) {
+        kms.generateDataKey(kmsParams, function(err, kmsData) {
+            if (err) {
+                callback(err, null);
+            } else {
+                const cipher = crypto.createCipher(algorithm, kmsData.Plaintext.toString('base64'));
+                const encrypted = Buffer.concat([cipher.update(params.Body), cipher.final()]);
+                params.Body = encrypted;
+                params.Metadata = params.Metadata || {};
+                params.Metadata[metadataKmsKeyName] = kmsData.CiphertextBlob.toString('base64');
+                putObject2(params, callback);
+            }
+        })
+    } else {
+        putObject2(params, callback);
+    }
+}
+
+function putObject2(params, callback) {
+  delete params.KmsParams;
+  s3.putObject(params, callback);
+}
+
+
+encrypt('google.png');
